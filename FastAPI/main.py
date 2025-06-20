@@ -23,7 +23,7 @@ app.add_middleware(
 
 
 # Load model
-MODEL = tf.keras.models.load_model(r"C:\Users\user\Desktop\david_omeiza_tomato_project\Models\Project_Improved_Model2.keras")
+MODEL = tf.keras.models.load_model(r"C:\Users\user\Desktop\tomatodiseaseclassification\Models\Project_Improved_Model2.keras")
 class_names = ["Bacterial Spot", "Early Blight", "Healthy", "Late Blight", "Southern Blight"]
 
 # Tomato disease solution function
