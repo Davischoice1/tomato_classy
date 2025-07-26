@@ -1,1 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tomato Disease Classifier 🍅</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7fce6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            padding: 40px;
+            gap: 40px;
+        }
+
+        .left {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .right {
+            flex: 1;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            color: #33691e;
+        }
+
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        input[type="file"],
+        button {
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #558b2f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        video, canvas {
+            width: 100%;
+            margin-top: 10px;
+            border-radius: 10px;
+        }
+
+        .result {
+            margin-top: 20px;
+        }
+
+        .result p {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- LEFT COLUMN -->
+    <div class="left">
+        <h1>🍅 Tomato Disease Classifier</h1>
+        <p>
+            This app identifies tomato plant diseases from leaf images using AI. It can detect:
+            <strong>Bacterial Spot, Early Blight, Late Blight, Southern Blight</strong> or confirm a <strong>Healthy</strong> leaf.
+        </p>
+        <p>
+            📸 Capture an image or upload one to get a diagnosis and receive best-practice treatment solutions.
+        </p>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="right">
+        <h2>Upload or Capture Image</h2>
+
+        <form id="uploadForm">
+            <input type="file" id="fileInput" name="file" accept="image/*" />
+            <br>
+            <button type="submit">Predict Disease</button>
+        </form>
+
+        <hr>
+
+        <h3>📷 Camera Capture</h3>
+        <video id="camera" autoplay></video>
+        <button id="capture">Capture</button>
+        <canvas id="snapshot" style="display:none;"></canvas>
+
+        <div class="result" id="result"></div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+        const file = fileInput.files[0];
+        if (!file) {
+            alert("Please upload or capture an image first.");
+            return;
+        }
+        formData.append("file", file);
+
+        await sendToAPI(formData);
+    });
+
+    // Handle camera stream
+    const video = document.getElementById('camera');
+    const canvas = document.getElementById('snapshot');
+    const captureBtn = document.getElementById('capture');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+        })
+        .catch(err => {
+            console.error("Camera access denied:", err);
+        });
+
+    captureBtn.addEventListener('click', () => {
+        canvas.style.display = "block";
+        const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+
+        // Convert canvas to Blob
+        canvas.toBlob(async (blob) => {
+            const formData = new FormData();
+            formData.append("file", blob, "captured.png");
+            await sendToAPI(formData);
+        }, 'image/png');
+    });
+
+    // Send image to FastAPI
+    async function sendToAPI(formData) {
+        resultDiv.innerHTML = "🔍 Predicting...";
+        try {
+            const response = await fetch("http://localhost:8000/predict", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                resultDiv.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+            } else {
+                resultDiv.innerHTML = `
+                    <p>Disease: ${data.predicted_class}</p>
+                    <p>Confidence: ${data.confidence}%</p>
+                    <p><strong>Solution:</strong><br>${data.solution.replace(/\n/g, "<br>")}</p>
+                `;
+            }
+        } catch (err) {
+            resultDiv.innerHTML = `<p style="color:red;">Error connecting to the API</p>`;
+            console.error(err);
+        }
+    }
+</script>
+
+</body>
+</html>
 
